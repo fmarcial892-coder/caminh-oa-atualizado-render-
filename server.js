@@ -6,11 +6,11 @@ const QRCode = require('qrcode');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Keep the webhook body raw so HMAC verification uses the exact bytes received.
+// BravoPay webhook: preserve raw JSON for HMAC verification.
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   try {
-    const secret = process.env.GGPIX_HMAC_SECRET;
-    const signature = req.get('X-Webhook-Signature') || '';
+    const secret = process.env.BRAVOPAY_WEBHOOK_SECRET;
+    const signature = req.get('BravoPay-Signature') || req.get('X-Bravopay-Signature') || '';
     if (secret) {
       const match = /^t=(\d+),v1=([a-f0-9]+)$/i.exec(signature);
       if (!match) return res.status(401).json({ error: 'Assinatura ausente ou inválida' });
@@ -28,7 +28,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
       }
     }
     const event = JSON.parse(req.body.toString('utf8') || '{}');
-    console.log('GGPIX webhook recebido:', JSON.stringify(event));
+    console.log('BravoPay webhook recebido:', JSON.stringify(event));
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -41,58 +41,65 @@ app.use(express.json({ limit: '1mb' }));
 app.post('/api/create-pix', async (req, res) => {
   try {
     const { amountCents, payerName, payerDocument, payerEmail, payerPhone, metadata } = req.body || {};
-    const apiKey = process.env.GGPIX_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'GGPIX_API_KEY não configurada no servidor' });
-    if (!Number.isInteger(amountCents) || amountCents < 100 || amountCents > 50000000) {
-      return res.status(400).json({ error: 'Valor inválido' });
+    const apiKey = process.env.BRAVOPAY_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'BRAVOPAY_API_KEY não configurada no servidor' });
+    if (!Number.isInteger(amountCents) || amountCents < 500) {
+      return res.status(400).json({ error: 'Valor inválido. O mínimo da BravoPay é R$ 5,00.' });
     }
     const doc = String(payerDocument || '').replace(/\D/g, '');
     if (!payerName || !/^\d{11}$|^\d{14}$/.test(doc)) {
       return res.status(400).json({ error: 'Nome e CPF/CNPJ válido são obrigatórios' });
     }
-    const externalId = 'lp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
-    const base = `${req.protocol}://${req.get('host')}`;
+
+    const externalReference = 'lp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
     const payload = {
-      amountCents,
+      amount_cents: amountCents,
+      method: 'pix',
+      customer: {
+        name: payerName,
+        cpf: doc,
+        email: payerEmail || undefined,
+        phone: payerPhone ? String(payerPhone).replace(/\D/g, '') : undefined
+      },
       description: 'Pedido Linha Pesada',
-      // Dados digitados pelo cliente no checkout.
-      // Enviamos nos dois nomes aceitos/usados pela API para garantir que
-      // a cobrança e a identificação do customer/devedor recebam os mesmos dados.
-      payerName,
-      payerDocument: doc,
-      customerName: payerName,
-      customerDocument: doc,
-      externalId,
-      payerEmail: payerEmail || undefined,
-      payerPhone: payerPhone ? String(payerPhone).replace(/\D/g, '') : undefined,
-      metadata: metadata || {},
-      webhookUrl: process.env.GGPIX_WEBHOOK_URL || `${base}/api/webhook`
+      external_reference: externalReference,
+      metadata: metadata || {}
     };
-    const response = await fetch('https://ggpixapi.com/api/v1/pix/in', {
+
+    const response = await fetch('https://bravopay.club/api/v1/transactions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey, 'Accept': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'Idempotency-Key': externalReference,
+        'Accept': 'application/json'
+      },
       body: JSON.stringify(payload)
     });
+
     const raw = await response.text();
     let data = {};
     try { data = raw ? JSON.parse(raw) : {}; }
     catch (_) {
-      console.error('GGPIXAPI retornou resposta não-JSON:', raw.slice(0, 500));
-      return res.status(502).json({ error: 'A GGPIXAPI retornou uma resposta inválida. Tente novamente em instantes.' });
+      console.error('BravoPay retornou resposta não-JSON:', raw.slice(0, 500));
+      return res.status(502).json({ error: 'A BravoPay retornou uma resposta inválida. Tente novamente em instantes.' });
     }
     if (!response.ok) return res.status(response.status).json(data);
-    const pixCopyPaste = data.pixCopyPaste || data.pixCode || data.brCode;
-    if (!pixCopyPaste) return res.status(502).json({ error: 'A GGPIXAPI não retornou o código PIX Copia e Cola.' });
+
+    const pixCopyPaste = data.pix?.copy_paste || data.pixCopyPaste || data.pixCode || data.brCode;
+    if (!pixCopyPaste) return res.status(502).json({ error: 'A BravoPay não retornou o código PIX Copia e Cola.' });
+
     let qrCode;
     try { qrCode = await QRCode.toDataURL(pixCopyPaste, { margin: 1, width: 280 }); }
     catch (qrErr) { console.error('Falha ao gerar QR Code:', qrErr); }
+
     return res.status(201).json({
-      id: data.id || data.transactionId,
+      id: data.id,
       status: data.status || 'PENDING',
       pixCopyPaste,
-      pixCode: data.pixCode || pixCopyPaste,
+      pixCode: pixCopyPaste,
       qrCode,
-      externalId,
+      externalId: externalReference,
       payerName,
       payerDocument: doc
     });
