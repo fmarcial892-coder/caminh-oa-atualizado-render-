@@ -31,6 +31,7 @@
   // Após PAID, vá para a página de confirmação para o GTM detectar o purchase.
   // O WhatsApp permanece manual: o cliente precisa clicar no botão.
   window.monitorPayment=function(transactionId){
+    localStorage.setItem('lp_last_transaction_id',String(transactionId||''));
     let tries=0;
     const maxTries=240;
     const timer=setInterval(async()=>{
