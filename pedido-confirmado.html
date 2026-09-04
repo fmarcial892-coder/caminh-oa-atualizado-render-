@@ -16,7 +16,7 @@ body{background:#071018;color:#fff;min-height:100vh}.confirm-wrap{max-width:760p
 <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N694KWH8" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
-<main class="confirm-wrap"><section class="confirm-card"><div class="ok">✓</div><div class="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Pedido confirmado!</h1><p class="muted">Recebemos a confirmação do pagamento PIX. Seu pedido foi registrado com sucesso.</p><div class="details"><div class="details-row"><span>Código do pedido</span><strong id="orderId">-</strong></div><div class="details-row"><span>Cliente</span><strong id="customer">-</strong></div><div class="details-row"><span>Pagamento</span><strong>PIX — Confirmado</strong></div><div class="details-row"><span>Valor total</span><strong class="total" id="total">R$ 0,00</strong></div><div class="items" id="items"></div></div><a id="whatsapp" class="btn-wa" href="#">Continuar no WhatsApp</a><div class="status" id="status">Abrindo o WhatsApp automaticamente...</div></section></main>
+<main class="confirm-wrap"><section class="confirm-card"><div class="ok">✓</div><div class="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Pedido confirmado!</h1><p class="muted">Recebemos a confirmação do pagamento PIX. Seu pedido foi registrado com sucesso.</p><div class="details"><div class="details-row"><span>Código do pedido</span><strong id="orderId">-</strong></div><div class="details-row"><span>Cliente</span><strong id="customer">-</strong></div><div class="details-row"><span>Pagamento</span><strong>PIX — Confirmado</strong></div><div class="details-row"><span>Valor total</span><strong class="total" id="total">R$ 0,00</strong></div><div class="items" id="items"></div></div><a id="whatsapp" class="btn-wa" href="#">Continuar no WhatsApp</a><div class="status" id="status">Pagamento confirmado. Clique no botão para falar com o especialista.</div></section></main>
 <script>
 window.dataLayer=window.dataLayer||[];
 const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -25,12 +25,11 @@ let items=[];try{items=JSON.parse(localStorage.getItem('lp_last_order_items')||'
 const total=Number(localStorage.getItem('lp_last_order_total')||0);const name=localStorage.getItem('lp_last_order_name')||'Cliente';
 document.getElementById('orderId').textContent=transactionId||'Confirmado';document.getElementById('customer').textContent=name;document.getElementById('total').textContent=brl(total);
 const productCache={};
-fetch('/products.json?catalog=20260904-confirm',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(products=>{items.forEach(i=>{const p=products.find(x=>x.id===i.id);if(p)productCache[i.id]=p});document.getElementById('items').innerHTML=items.map(i=>{const p=productCache[i.id];return p?`<div class="item">${i.qty}x ${p.name}<br><small>${p.code||''} · ${brl(p.pix*i.qty)}</small></div>`:''}).join('')}).catch(()=>{});
+fetch('/products.json?catalog=20260904-confirm',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(products=>{items.forEach(i=>{const p=products.find(x=>x.id===i.id);if(p)productCache[i.id]=p});document.getElementById('items').innerHTML=items.map(i=>{const p=productCache[i.id];return p?`<div class="item">${i.qty}x ${p.name}<br><small>${p.code||''} · ${brl(p.pix*i.qty)}</small></div>`:''}).join('');}).catch(()=>{});
+window.dataLayer.push({event:'purchase',transaction_id:transactionId||`site-${Date.now()}`,value:total,currency:'BRL',items:items.map(i=>({item_id:i.id,quantity:i.qty}))});
 const info=items.map(i=>{const p=productCache[i.id];return p?`${i.qty}x ${p.name} | Código/ref.: ${p.code} | ${brl(p.pix*i.qty)}`:''}).filter(Boolean).join('\n');
 const text=`Olá! Acabei de realizar o pagamento PIX pelo site Linha Pesada e o pagamento foi confirmado pelo gateway.\n\nCliente: ${name}\nPedido: ${transactionId||'Confirmado'}\n\nItens:\n${info}\n\nValor total: ${brl(total)}\n\nPagamento confirmado. Por favor, prossiga com meu pedido.`;
 const wa=`https://api.whatsapp.com/send/?phone=5512981160171&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;document.getElementById('whatsapp').href=wa;
-window.dataLayer.push({event:'purchase',transaction_id:transactionId||`site-${Date.now()}`,value:total,currency:'BRL',items:items.map(i=>({item_id:i.id,quantity:i.qty}))});
 localStorage.removeItem('lp_last_order_pending');
-setTimeout(()=>{document.getElementById('status').textContent='Se não abrir automaticamente, clique no botão acima.';location.href=wa},1800);
 </script>
 </body></html>
