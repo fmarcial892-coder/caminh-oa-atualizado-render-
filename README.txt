@@ -2,7 +2,7 @@ LINHA PESADA — versão catálogo + checkout PIX
 
 1) O site tem 10 produtos em cada uma das 5 categorias: Rodas, Pneus, Motor, Suspensão e Cubos.
 2) Os preços são referências pesquisadas em páginas de lojas online. Antes de vender, substitua/valide com os seus preços, estoque e condições.
-3) Não foi inventado preço para a Bolsa BOLS124B-I porque não havia valor confirmado na fonte consultada.
+3) Bolsa BOLS124B-I: preço de referência R$ 237,59 encontrado em anúncio atual da Dipecarr.
 4) Fotos: somente URLs de fotos de produto confirmadas foram usadas; onde a foto real não pôde ser confirmada, o card informa isso em vez de usar foto ilustrativa inventada.
 5) Compra no site: o carrinho usa o preço PIX cadastrado no catálogo.
 6) Compra com especialista: abre WhatsApp com o produto e código.
