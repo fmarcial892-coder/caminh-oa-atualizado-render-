@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const QRCode = require('qrcode');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
@@ -28,7 +29,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) =
     }
     const event = JSON.parse(req.body.toString('utf8') || '{}');
     console.log('GGPIX webhook recebido:', JSON.stringify(event));
-    // Próxima etapa: persistir o pedido e marcar como pago em um banco.
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -65,16 +65,28 @@ app.post('/api/create-pix', async (req, res) => {
     };
     const response = await fetch('https://ggpixapi.com/api/v1/pix/in', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey, 'Accept': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const data = await response.json().catch(() => ({}));
+    const raw = await response.text();
+    let data = {};
+    try { data = raw ? JSON.parse(raw) : {}; }
+    catch (_) {
+      console.error('GGPIXAPI retornou resposta não-JSON:', raw.slice(0, 500));
+      return res.status(502).json({ error: 'A GGPIXAPI retornou uma resposta inválida. Tente novamente em instantes.' });
+    }
     if (!response.ok) return res.status(response.status).json(data);
+    const pixCopyPaste = data.pixCopyPaste || data.pixCode || data.brCode;
+    if (!pixCopyPaste) return res.status(502).json({ error: 'A GGPIXAPI não retornou o código PIX Copia e Cola.' });
+    let qrCode;
+    try { qrCode = await QRCode.toDataURL(pixCopyPaste, { margin: 1, width: 280 }); }
+    catch (qrErr) { console.error('Falha ao gerar QR Code:', qrErr); }
     return res.status(201).json({
       id: data.id || data.transactionId,
       status: data.status || 'PENDING',
-      pixCopyPaste: data.pixCopyPaste,
-      qrCode: data.qrCode,
+      pixCopyPaste,
+      pixCode: data.pixCode || pixCopyPaste,
+      qrCode,
       externalId
     });
   } catch (err) {
