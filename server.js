@@ -1,12 +1,14 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 const QRCode = require('qrcode');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 const API = 'https://bravopay.club/api/v1/transactions';
 
+// Fontes reais corrigidas para os produtos que tinham URL quebrada.
 const PRODUCT_IMAGES = {
   r4: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/6/666006524_roda_ferro_22_5_caminhao_750_3_.jpg.jpg',
   r5: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/5/9/59-042_thumb.jpg',
@@ -19,9 +21,54 @@ const PRODUCT_IMAGES = {
 };
 const imageCache = new Map();
 
+function getProductImageSource(id) {
+  if (PRODUCT_IMAGES[id]) return PRODUCT_IMAGES[id];
+  try {
+    const products = JSON.parse(fs.readFileSync(path.join(__dirname, 'products.json'), 'utf8'));
+    const product = products.find(p => p && p.id === id);
+    return product && typeof product.img === 'string' ? product.img : null;
+  } catch (e) {
+    console.error('products.json:', e.message);
+    return null;
+  }
+}
+
+async function fetchImage(url) {
+  const sources = [url];
+  // Se a loja bloquear hotlink, tenta o mesmo arquivo por um proxy de imagens.
+  try {
+    const proxy = 'https://images.weserv.nl/?url=' + encodeURIComponent(url);
+    sources.push(proxy);
+  } catch (_) {}
+
+  for (const source of sources) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(source, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; LinhaPesada/1.0)',
+          'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Referer': source === url ? new URL(url).origin + '/' : 'https://images.weserv.nl/'
+        }
+      });
+      clearTimeout(timer);
+      if (!response.ok) continue;
+      const body = Buffer.from(await response.arrayBuffer());
+      const type = response.headers.get('content-type') || 'image/jpeg';
+      if (body.length < 500 || !type.startsWith('image/')) continue;
+      return { body, type };
+    } catch (e) {
+      console.error('imagem fonte:', source, e.message);
+    }
+  }
+  return null;
+}
+
 app.get('/produto-imagem/:id', async (req, res) => {
-  const url = PRODUCT_IMAGES[req.params.id];
-  if (!url) return res.status(404).end();
+  const url = getProductImageSource(req.params.id);
+  if (!url || !/^https?:\/\//i.test(url)) return res.status(404).end();
   try {
     if (imageCache.has(url)) {
       const cached = imageCache.get(url);
@@ -29,24 +76,12 @@ app.get('/produto-imagem/:id', async (req, res) => {
       res.set('Cache-Control', 'public, max-age=86400');
       return res.send(cached.body);
     }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; LinhaPesada/1.0)',
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'Referer': new URL(url).origin + '/'
-      }
-    });
-    clearTimeout(timer);
-    if (!response.ok) return res.status(502).end();
-    const body = Buffer.from(await response.arrayBuffer());
-    const type = response.headers.get('content-type') || 'image/jpeg';
-    imageCache.set(url, { body, type });
-    res.set('Content-Type', type);
+    const image = await fetchImage(url);
+    if (!image) return res.status(502).end();
+    imageCache.set(url, image);
+    res.set('Content-Type', image.type);
     res.set('Cache-Control', 'public, max-age=86400');
-    return res.send(body);
+    return res.send(image.body);
   } catch (e) {
     console.error('produto-imagem:', req.params.id, e.message);
     return res.status(502).end();
