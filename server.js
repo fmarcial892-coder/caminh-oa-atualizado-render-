@@ -7,6 +7,52 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const API = 'https://bravopay.club/api/v1/transactions';
 
+const PRODUCT_IMAGES = {
+  r4: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/6/666006524_roda_ferro_22_5_caminhao_750_3_.jpg.jpg',
+  r5: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/5/9/59-042_thumb.jpg',
+  p2: 'https://s3.us-east-2.amazonaws.com/main.s3.pneubestec.astrus/tb_estrutura_produtos/257426/ls_648dcd116df070ffe1b6a652695a6e29.webp',
+  p3: 'https://images.tcdn.com.br/img/img_prod/495545/pneu_27580r225_misto_drc_ls755_146143l_16_lonas_p_1_20260428182125_69c785f47735.jpg',
+  p4: 'https://images.tcdn.com.br/img/img_prod/495545/pneu_29580r225_liso_drc_ls601_18_lonas_152148m_18_1_20260429095435_e643ee9bc289.jpg',
+  p5: 'https://s3.us-east-2.amazonaws.com/main.s3.pneubestec.astrus/tb_estrutura_produtos/257436/curve_9400dcd6b4bab3fb50d7432cdac29d85.webp',
+  p7: 'https://images.tcdn.com.br/img/img_prod/495545/pneu_29580r225_misto_drc_ls755_152148l_18_lonas_v_1_20260428180250_9002cfdfcbed.jpg',
+  motor: 'https://acamargo.magehub.com.br/media/catalog/product/cache/ea36ed4511744f681e915b5979a4c73f/3/0/3010568_03_3010568.JPG'
+};
+const imageCache = new Map();
+
+app.get('/produto-imagem/:id', async (req, res) => {
+  const url = PRODUCT_IMAGES[req.params.id];
+  if (!url) return res.status(404).end();
+  try {
+    if (imageCache.has(url)) {
+      const cached = imageCache.get(url);
+      res.set('Content-Type', cached.type);
+      res.set('Cache-Control', 'public, max-age=86400');
+      return res.send(cached.body);
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; LinhaPesada/1.0)',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Referer': new URL(url).origin + '/'
+      }
+    });
+    clearTimeout(timer);
+    if (!response.ok) return res.status(502).end();
+    const body = Buffer.from(await response.arrayBuffer());
+    const type = response.headers.get('content-type') || 'image/jpeg';
+    imageCache.set(url, { body, type });
+    res.set('Content-Type', type);
+    res.set('Cache-Control', 'public, max-age=86400');
+    return res.send(body);
+  } catch (e) {
+    console.error('produto-imagem:', req.params.id, e.message);
+    return res.status(502).end();
+  }
+});
+
 app.post('/api/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   try {
     const secret = process.env.BRAVOPAY_WEBHOOK_SECRET;
@@ -77,24 +123,15 @@ app.post('/api/create-pix', async (req, res) => {
       }
 
       const raw = await response.text();
-      try {
-        data = raw ? JSON.parse(raw) : {};
-      } catch (_) {
-        data = {};
-      }
-
+      try { data = raw ? JSON.parse(raw) : {}; } catch (_) { data = {}; }
       if (response.ok || ![429, 500, 502, 503, 504].includes(response.status) || attempt === 2) break;
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     if (!response) return res.status(502).json({ error: 'Não foi possível conectar ao gateway PIX.' });
-
     if (!response.ok) {
       const msg = data?.error?.message || data?.message || data?.error || 'O gateway recusou a criação do PIX.';
-      return res.status(response.status).json({
-        error: String(msg),
-        details: data?.error?.details || data?.details || null
-      });
+      return res.status(response.status).json({ error: String(msg), details: data?.error?.details || data?.details || null });
     }
 
     const pix = String(data?.pix?.copy_paste || '').trim();
@@ -102,11 +139,7 @@ app.post('/api/create-pix', async (req, res) => {
 
     let qr = data?.pix?.qr_code || null;
     if (!qr) {
-      try {
-        qr = await QRCode.toDataURL(pix, { margin: 1, width: 280 });
-      } catch (e) {
-        console.error('QR local:', e);
-      }
+      try { qr = await QRCode.toDataURL(pix, { margin: 1, width: 280 }); } catch (e) { console.error('QR local:', e); }
     }
 
     return res.status(200).json({
@@ -126,12 +159,8 @@ app.post('/api/create-pix', async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.json({
-  ok: true,
-  bravopayConfigured: Boolean(process.env.BRAVOPAY_API_KEY)
-}));
+app.get('/health', (req, res) => res.json({ ok: true, bravopayConfigured: Boolean(process.env.BRAVOPAY_API_KEY) }));
 
 app.use(express.static(path.join(__dirname)));
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
 app.listen(PORT, '0.0.0.0', () => console.log(`Linha Pesada online na porta ${PORT}`));
