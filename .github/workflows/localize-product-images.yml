@@ -21,16 +21,17 @@ jobs:
         run: |
           python3 - <<'PY'
           import os,re,sys,subprocess
-          from urllib.parse import urlparse
+          from urllib.parse import urlparse,quote
 
           text=open('app.js',encoding='utf-8').read()
           rx=re.compile(r"\{id:'([^']+)'[^}]*?name:'([^']+)'[^}]*?code:'([^']+)'[^}]*?price:([^,]+),[^}]*?img:'([^']*)'")
           rows=list(rx.finditer(text))
           os.makedirs('assets/produtos',exist_ok=True)
 
+          # Somente produtos que ainda estavam falhando. Os que já funcionam não são refeitos.
           pages={
-            'r2':'https://www.mundodocaminhao.com.br/roda-de-aluminio-para-caminhao-gt1-aro-225-x-825-10-furos-italspeed',
-            'r3':'https://www.mundodocaminhao.com.br/roda-de-aluminio-225-x-825-speedline-caminhao-italspeed',
+            'r2':'https://www.mundodocaminhao.com.br/roda-de-aluminio-gt1-caminhao-aro-22-5-x-8-25-10-furos-alto-brilho',
+            'r3':'https://www.engevelpecas.com.br/rodas/roda-de-aluminio-speedline-caminhao-aro-22-5-x-8-25-10-furos-italspeed',
             'r4':'https://www.mundodocaminhao.com.br/roda-de-aco-para-caminhao-aro-225-x-750-10-furos-pneu-275',
             'r5':'https://www.mundodocaminhao.com.br/roda-de-aco-para-caminhao-aro-225-x-825-10-furos-pneu-295',
             'r6':'https://www.mundodocaminhao.com.br/roda-de-aluminio-caminhao-alto-brilho-borda-larga-aro-225-x-825-ultra-better-old-trucker',
@@ -38,11 +39,6 @@ jobs:
             'r8':'https://www.mundodocaminhao.com.br/roda-de-aco-para-caminhao-aro-175-x-600-6-furos-pneu-215-e-235',
             'r9':'https://www.mundodocaminhao.com.br/calota-protetora-roda-cromada-caminhao-aro-225-par-bepo',
             'r10':'https://www.mundodocaminhao.com.br/calota-speed-truck-caminhao-aro-225-10-furos-cromada-jetta',
-            'p2':'https://www.pneubest.com.br/produto/pneu-275-80r22-5-16pr-149-146m-ls602-direcional-dplus',
-            'p4':'https://www.pantapneus.com.br/295-80r22-5-liso-drc-18-lonas',
-            'p6':'https://www.pantapneus.com.br/pneus-para-vans/pneu-22-5/pneu-29580r22-5-xbri-ecoplus-150147m-18-lonas-veiculos-de-carga',
-            'p7':'https://www.pantapneus.com.br/pneus-para-vans/pneu-22-5/pneu-29580r22-5-misto-drc-ls755-152148l-18-lonas-veiculos-de-carga',
-            'p9':'https://www.pantapneus.com.br/225-80r22-5-xbri-x-curve-18-lonas-carga',
             'm1':'https://www.autoz.com.br/camisa-motor-std-c9720std-metal-leve/p',
             'm2':'https://www.autoz.com.br/bronzina-mancal-motor-std-bc852jstd-metal-leve/p',
             'm5':'https://www.autoz.com.br/bronzina-mancal-0-25-bc1084p025-metal-leve/p',
@@ -50,29 +46,42 @@ jobs:
             'm7':'https://www.autoz.com.br/filtro-combustivel-kc118-mahle/p',
             'm8':'https://busca.autoz.com.br/filtro-ar-lx273-mahle/p',
             's1':'https://www.pitstop.com.br/amortecedor-de-suspensao-dianteiro-p--caminhao---cofap---l-13350-1031924/p',
-            's2':'https://www.dungapecas.com.br/amortecedor-traseiro-micro-onibus-agrale-cofap-l13054',
-            's4':'https://www.calpenautopecas.com.br/suspensao/amortecedor/amortecedor-traseiro/amortecedor-traseiro-agrale-7000-7500-ma-7-5t',
             's6':'https://www.pitstop.com.br/amortecedor-traseiro-super-agrale-volare-a6a8ma-1998-a-2011-cofap-l13828-1586/p',
             's9':'https://www.karhub.com.br/p/amortecedor-suspensao-dianteiro-para-agrale-ma-7-5-ma-8-5-cofap-l-12871-9524947',
-            'c4':'https://www.tagaautopartes.com.br/produtos/cubo-roda-dianteiro-231386-CRC075-069541',
-            'c8':'https://www.tagaautopartes.com.br/produtos/cubo-roda-dianteiro-168658-CRC079-148062',
-            'c9':'https://www.tagaautopartes.com.br/produtos/cubo-roda-traseiro-155423-100000023965-010434',
+            'c7':'https://www.morelate.com.br/cubo-roda-dianteiro----------',
           }
 
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36'
+
           def curl(url,out,referer=None):
-              cmd=['curl','-L','--fail','--silent','--show-error','--connect-timeout','20','--max-time','60','-A','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36','-o',out,url]
+              cmd=['curl','-L','--fail','--silent','--show-error','--connect-timeout','20','--max-time','60','-A',UA,'-o',out,url]
               if referer: cmd += ['-e',referer]
               p=subprocess.run(cmd)
               return p.returncode==0 and os.path.exists(out) and os.path.getsize(out)>5000
+
+          def curl_image(url,out,referer=None):
+              # Primeiro tenta a imagem original; se o CDN bloquear o runner (403/429), usa apenas um proxy de imagem.
+              if curl(url,out,referer): return True,url
+              proxy='https://images.weserv.nl/?url='+quote(url,safe='')
+              if curl(proxy,out,referer): return True,proxy
+              return False,None
 
           def page_image(page,pid):
               html=f'/tmp/{pid}.html'
               if not curl(page,html): return None
               s=open(html,encoding='utf-8',errors='ignore').read()
-              for pat in [r'<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)',r'<meta[^>]+name=["\']twitter:image["\'][^>]+content=["\']([^"\']+)']:
-                  m=re.search(pat,s,re.I)
-                  if m: return m.group(1).replace('&amp;','&')
+              # Aceita meta tags independentemente da ordem dos atributos.
+              for tag in re.findall(r'<meta\b[^>]*>',s,re.I):
+                  attrs=dict((k.lower(),v) for k,v in re.findall(r'''([:\w-]+)\s*=\s*["']([^"']*)["']''',tag,re.I))
+                  key=(attrs.get('property') or attrs.get('name') or '').lower()
+                  if key in ('og:image','twitter:image') and attrs.get('content'):
+                      return attrs['content'].replace('&amp;','&').replace('\\/','/')
               return None
+
+          def image_is_real(path):
+              if not os.path.exists(path) or os.path.getsize(path)<=5000: return False
+              p=subprocess.run(['file','-b','--mime-type',path],capture_output=True,text=True)
+              return p.returncode==0 and p.stdout.strip().startswith('image/')
 
           failures=[]; replacements={}
           for m in rows:
@@ -80,15 +89,17 @@ jobs:
               ok=False; used=None
               if old.startswith('http'):
                   ref=f'{urlparse(old).scheme}://{urlparse(old).netloc}/'
-                  ok=curl(old,out,ref); used=old if ok else None
-              if not ok and pid in pages:
+                  ok,used=curl_image(old,out,ref)
+              if (not ok) and pid in pages:
                   img=page_image(pages[pid],pid)
                   if img:
                       if img.startswith('//'): img='https:'+img
                       if img.startswith('/'):
                           base=f'{urlparse(pages[pid]).scheme}://{urlparse(pages[pid]).netloc}'
                           img=base+img
-                      ok=curl(img,out,pages[pid]); used=img if ok else None
+                      ok,used=curl_image(img,out,pages[pid])
+              if ok and not image_is_real(out):
+                  ok=False
               if not ok:
                   failures.append((pid,code,name,old,pages.get(pid)))
                   try: os.remove(out)
@@ -117,6 +128,7 @@ jobs:
           echo "Fotos locais: $count"
           test "$count" -eq 50
           for id in r{1..10} p{1..10} m{1..10} s{1..10} c{1..10}; do test -f "assets/produtos/$id.jpg"; done
+          for f in assets/produtos/*.jpg; do file -b --mime-type "$f" | grep -q '^image/'; done
 
       - name: Commit das fotos reais locais
         run: |
