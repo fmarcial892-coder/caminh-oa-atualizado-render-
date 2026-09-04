@@ -27,4 +27,26 @@
     };
     try{await originalCreatePix(total)}finally{window.fetch=originalFetch;if(failed)showFallback(total)}
   };
+
+  // Após PAID, vá para a página de confirmação para o GTM detectar o purchase.
+  // O WhatsApp permanece manual: o cliente precisa clicar no botão.
+  window.monitorPayment=function(transactionId){
+    let tries=0;
+    const maxTries=240;
+    const timer=setInterval(async()=>{
+      tries++;
+      try{
+        const r=await fetch(`/api/payment-status/${encodeURIComponent(transactionId)}?t=${Date.now()}`,{cache:'no-store'});
+        if(!r.ok)return;
+        const data=await r.json();
+        if(String(data.status).toUpperCase()==='PAID'){
+          clearInterval(timer);
+          localStorage.removeItem('lp_last_order_pending');
+          localStorage.setItem('lp_last_transaction_id',String(transactionId));
+          window.location.href=`/pedido-confirmado.html?transaction_id=${encodeURIComponent(transactionId)}`;
+        }
+      }catch(_){ }
+      if(tries>=maxTries)clearInterval(timer);
+    },3000);
+  };
 })();
