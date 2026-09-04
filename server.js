@@ -8,15 +8,21 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 const API = 'https://bravopay.club/api/v1/transactions';
 
-// Fontes reais corrigidas para os produtos que tinham URL quebrada.
+// Fontes reais corrigidas para os produtos que estavam com URL quebrada.
 const PRODUCT_IMAGES = {
   r4: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/6/666006524_roda_ferro_22_5_caminhao_750_3_.jpg.jpg',
   r5: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/9df78eab33525d08d6e5fb8d27136e95/5/9/59-042_thumb.jpg',
+  r6: 'https://m.magazineluiza.com.br/a-static/420x420/roda-de-aluminio-caminhao-better-old-trucker-225-x-825-alto-brilho-borda-larga/mundodocaminhaoloja/17-954/3b502225b1002e8f7589d5287092c6b3.jpeg',
+  r7: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/g/c/gcabt.jpg',
+  r8: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/374x/9df78eab33525d08d6e5fb8d27136e95/o/t/ot_a_o.jpg',
+  r9: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/4/645310149_31-M153H.jpg.jpg',
+  r10: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/5/650718171_2.jpg.jpg',
   p2: 'https://s3.us-east-2.amazonaws.com/main.s3.pneubestec.astrus/tb_estrutura_produtos/257426/ls_648dcd116df070ffe1b6a652695a6e29.webp',
   p3: 'https://images.tcdn.com.br/img/img_prod/495545/pneu_27580r225_misto_drc_ls755_146143l_16_lonas_p_1_20260428182125_69c785f47735.jpg',
   p4: 'https://images.tcdn.com.br/img/img_prod/495545/pneu_29580r225_liso_drc_ls601_18_lonas_152148m_18_1_20260429095435_e643ee9bc289.jpg',
   p5: 'https://s3.us-east-2.amazonaws.com/main.s3.pneubestec.astrus/tb_estrutura_produtos/257436/curve_9400dcd6b4bab3fb50d7432cdac29d85.webp',
   p7: 'https://images.tcdn.com.br/img/img_prod/495545/pneu_29580r225_misto_drc_ls755_152148l_18_lonas_v_1_20260428180250_9002cfdfcbed.jpg',
+  p9: 'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/c/u/curve_plus_thumb.jpg',
   motor: 'https://acamargo.magehub.com.br/media/catalog/product/cache/ea36ed4511744f681e915b5979a4c73f/3/0/3010568_03_3010568.JPG'
 };
 const imageCache = new Map();
@@ -34,12 +40,13 @@ function getProductImageSource(id) {
 }
 
 async function fetchImage(url) {
-  const sources = [url];
-  // Se a loja bloquear hotlink, tenta o mesmo arquivo por um proxy de imagens.
-  try {
-    const proxy = 'https://images.weserv.nl/?url=' + encodeURIComponent(url);
-    sources.push(proxy);
-  } catch (_) {}
+  const encoded = encodeURIComponent(url);
+  const sources = [
+    url,
+    `https://images.weserv.nl/?url=${encoded}`,
+    `https://wsrv.nl/?url=${encoded}`,
+    `https://wsrv.nl/?url=${encoded}&output=jpg`
+  ];
 
   for (const source of sources) {
     try {
@@ -50,7 +57,7 @@ async function fetchImage(url) {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; LinhaPesada/1.0)',
           'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-          'Referer': source === url ? new URL(url).origin + '/' : 'https://images.weserv.nl/'
+          'Referer': source === url ? new URL(url).origin + '/' : 'https://wsrv.nl/'
         }
       });
       clearTimeout(timer);
