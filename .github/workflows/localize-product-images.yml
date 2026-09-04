@@ -1,0 +1,79 @@
+name: Localizar fotos reais dos produtos
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  localize-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Baixar e validar fotos reais
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: |
+          python3 - <<'PY'
+          import os, re, sys, subprocess
+          from urllib.parse import urlparse
+
+          app='app.js'
+          text=open(app,encoding='utf-8').read()
+          rx=re.compile(r"\{id:'([^']+)'[^}]*?name:'([^']+)'[^}]*?code:'([^']+)'[^}]*?price:([^,]+),[^}]*?img:'([^']*)'")
+          rows=list(rx.finditer(text))
+          os.makedirs('assets/produtos',exist_ok=True)
+          failures=[]
+          replacements={}
+          for m in rows:
+              pid,name,code,price,url=m.groups()
+              if not url.startswith('http'):
+                  failures.append((pid,'sem URL de origem'))
+                  continue
+              ext=os.path.splitext(urlparse(url).path)[1].lower()
+              if ext not in ('.jpg','.jpeg','.png','.webp'):
+                  ext='.jpg'
+              out=f'assets/produtos/{pid}{ext}'
+              cmd=['curl','-L','--fail','--silent','--show-error','--connect-timeout','15','--max-time','45','-A','Mozilla/5.0','-o',out,url]
+              p=subprocess.run(cmd)
+              if p.returncode!=0 or not os.path.exists(out) or os.path.getsize(out)<5000:
+                  failures.append((pid,url))
+                  try: os.remove(out)
+                  except FileNotFoundError: pass
+                  continue
+              replacements[url]='/'+out
+              print(f'OK {pid} | {code} | {name} | {os.path.getsize(out)} bytes')
+
+          if failures:
+              print('\nFALHAS:')
+              for x in failures: print(' -',x)
+              sys.exit(1)
+
+          for src,dst in replacements.items():
+              text=text.replace("img:'"+src+"'", "img:'"+dst+"'")
+          open(app,'w',encoding='utf-8').write(text)
+          print(f'Localizadas {len(replacements)} fotos em assets/produtos/.')
+          PY
+
+      - name: Garantir que não há URLs externas de imagens
+        run: |
+          if grep -nE "img:'https?://|img=\"https?://" app.js; then
+            echo 'Ainda existem imagens externas em app.js.'
+            exit 1
+          fi
+          count=$(find assets/produtos -type f | wc -l)
+          echo "Fotos locais: $count"
+          test "$count" -eq 50
+
+      - name: Commit das fotos locais
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/produtos app.js
+          git diff --cached --quiet || git commit -m 'Adicionar fotos reais locais aos produtos'
+          git push
