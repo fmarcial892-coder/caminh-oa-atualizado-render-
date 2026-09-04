@@ -1,0 +1,144 @@
+name: Localizar fotos reais dos produtos v2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  localize-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Baixar fotos reais e eliminar URLs externas
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: |
+          python3 - <<'PY'
+          import os,re,sys,subprocess,html,json,time
+          from urllib.parse import urlparse,quote
+
+          text=open('app.js',encoding='utf-8').read()
+          rx=re.compile(r"\{id:'([^']+)'[^}]*?name:'([^']+)'[^}]*?code:'([^']+)'[^}]*?price:([^,]+),[^}]*?img:'([^']*)'")
+          rows=list(rx.finditer(text))
+          assert len(rows)==50, f'Esperados 50 produtos, encontrados {len(rows)}'
+          os.makedirs('assets/produtos',exist_ok=True)
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36'
+
+          # Fontes diretas já confirmadas para alguns itens. O restante usa busca por nome+codigo.
+          direct={
+            'r2':'https://static.viapecas.com.br/public/viapecas/imagens/produtos/tiny/roda-de-aluminio-gt1-caminhao-aro-22-5-x-8-25-10f-italspeed-4843.png',
+            'r4':'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/6/666006520_roda_ferro_22_5_caminhao_750_7_.jpg.jpg',
+            'r5':'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/5/9/59-042_thumb.jpg',
+            'r9':'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/4/645310149_31-M153H.jpg.jpg',
+            'r10':'https://www.mundodocaminhao.com.br/media/catalog/product/cache/1/image/200x200/9df78eab33525d08d6e5fb8d27136e95/6/5/650718171_2.jpg.jpg',
+            'm1':'https://autoz.vteximg.com.br/arquivos/ids/224155-85-85/METAL-LEVE_C9720STD.jpg?v=638864702333330000',
+            'm6':'https://autoz.vteximg.com.br/arquivos/ids/224060-85-85/METAL-LEVE_M21503STD.jpg?v=638864702026500000',
+          }
+          queries={
+            'r3':'Roda de Alumínio Speedline Aro 22,5 x 8,25 10 Furos Italspeed VP05',
+            'r6':'Roda de Alumínio Caminhão Alto Brilho Borda Larga Aro 22,5 x 8,25 Ultra Better Old Trucker',
+            'r7':'Roda de Alumínio Caminhão 3/4 Aro 17,5 x 6 6 Furos Old Trucker',
+            'r8':'Roda de Ferro Aro 17,5 x 6,00 6 Furos Pneu 215 235 Old Trucker',
+            'p2':'Pneu 275/80R22,5 DPLUS LS602 149/146M 16 Lonas',
+            'p4':'Pneu 295/80R22,5 DRC LS601 152/148M 18 Lonas',
+            'p6':'Pneu 295/80R22,5 XBRI Ecoplus 150/147M 18 Lonas',
+            'p7':'Pneu 295/80R22,5 DRC LS755 152/148L 18 Lonas',
+            'p9':'Pneu 295/80R22,5 XBRI Curve Plus F1 152/149L 18 Lonas',
+            'm2':'Bronzina Mancal Motor Std BC852JSTD Metal Leve 6312133',
+            'm5':'Bronzina Mancal 0,25 BC1084P025 Metal Leve 48212',
+            'm7':'Filtro Combustível KC118 Mahle 71191',
+            'm8':'Filtro de Ar LX273 Mahle 60576',
+            's1':'Amortecedor Cofap L.13350 Dianteiro Caminhão',
+            's6':'Amortecedor Cofap L.13828 Traseiro Agrale Volare',
+            's9':'Amortecedor Cofap L.12871 Dianteiro Agrale MA',
+            'c7':'Cubo Roda Dianteiro VW MAN 8160 9160 ABS 2P0407617D',
+          }
+
+          def valid_image(path):
+              if not os.path.exists(path) or os.path.getsize(path)<5000: return False
+              p=subprocess.run(['file','-b','--mime-type',path],capture_output=True,text=True)
+              return p.returncode==0 and p.stdout.strip().startswith('image/')
+
+          def fetch(url,out,referer=None):
+              cmd=['curl','-L','--fail','--silent','--show-error','--retry','3','--retry-delay','1','--connect-timeout','20','--max-time','60','-A',UA,'-o',out,url]
+              if referer: cmd += ['-e',referer]
+              p=subprocess.run(cmd)
+              return p.returncode==0 and valid_image(out)
+
+          def fetch_proxy(url,out):
+              proxy='https://images.weserv.nl/?url='+quote(url,safe='')
+              return fetch(proxy,out)
+
+          def bing_candidates(q):
+              tmp='/tmp/bing.html'
+              u='https://www.bing.com/images/search?q='+quote(q)
+              if not fetch_html(u,tmp): return []
+              s=open(tmp,encoding='utf-8',errors='ignore').read()
+              vals=[]
+              for pat in [r'"murl":"(.*?)"',r'murl&quot;:&quot;(.*?)&quot;']:
+                  for x in re.findall(pat,s,re.I):
+                      x=html.unescape(x).replace('\\/','/')
+                      if x.startswith('http') and x not in vals: vals.append(x)
+              return vals[:20]
+
+          def fetch_html(url,out):
+              cmd=['curl','-L','--fail','--silent','--show-error','--retry','2','--connect-timeout','15','--max-time','45','-A',UA,'-o',out,url]
+              return subprocess.run(cmd).returncode==0 and os.path.exists(out) and os.path.getsize(out)>1000
+
+          replacements={}
+          failures=[]
+          for m in rows:
+              pid,name,code,price,old=m.groups()
+              out=f'assets/produtos/{pid}.jpg'
+              if valid_image(out):
+                  if old.startswith('http'): replacements[old]='/'+out
+                  print('KEEP',pid)
+                  continue
+              ok=False; used=None
+              candidates=[]
+              if pid in direct: candidates.append(direct[pid])
+              if old.startswith('http'): candidates.append(old)
+              for url in candidates:
+                  if fetch(url,out) or fetch_proxy(url,out): ok=True; used=url; break
+              if not ok and pid in queries:
+                  for url in bing_candidates(queries[pid]):
+                      if fetch(url,out) or fetch_proxy(url,out): ok=True; used=url; break
+              if not ok:
+                  failures.append((pid,code,name,queries.get(pid)))
+                  if os.path.exists(out): os.remove(out)
+              else:
+                  replacements[old]='/'+out
+                  print('OK',pid,code,'|',used)
+
+          if failures:
+              print('FALHAS:')
+              for x in failures: print(x)
+              sys.exit(1)
+
+          for src,dst in replacements.items():
+              text=text.replace("img:'"+src+"'", "img:'"+dst+"'")
+          open('app.js','w',encoding='utf-8').write(text)
+          print('Fotos locais prontas:',len(rows))
+          PY
+
+      - name: Validar 50 produtos, 50 fotos reais locais e 50 preços
+        run: |
+          test "$(grep -o "id:'[a-z][0-9]*'" app.js | wc -l)" -eq 50
+          test "$(grep -o "price:[0-9][0-9.]*" app.js | wc -l)" -eq 50
+          ! grep -nE "img:'https?://|img=\"https?://" app.js
+          test "$(find assets/produtos -maxdepth 1 -type f | wc -l)" -eq 50
+          for id in r{1..10} p{1..10} m{1..10} s{1..10} c{1..10}; do test -f "assets/produtos/$id.jpg"; file -b --mime-type "assets/produtos/$id.jpg" | grep -q '^image/'; done
+
+      - name: Commit das fotos reais locais
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/produtos app.js
+          git diff --cached --quiet || git commit -m 'Adicionar 50 fotos reais locais verificadas'
+          git push
