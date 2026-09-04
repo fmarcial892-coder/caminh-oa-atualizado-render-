@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Linha Pesada | Peças, Rodas e Pneus para Caminhões</title>
+<meta name="description" content="Loja de linha pesada com rodas, pneus, peças de motor, suspensão e cubos. Compre online via PIX ou fale com um especialista no WhatsApp.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar"><div class="wrap topbar-in"><span>🚚 Linha pesada para quem vive da estrada</span><span>Compra online • PIX • Atendimento especializado</span></div></div>
+<header class="header"><div class="wrap nav">
+<a class="brand" href="#top"><span class="mark">LP</span><span><b>LINHA PESADA</b><small>CAMINHÕES & CARRETAS</small></span></a>
+<nav><a href="#rodas">Rodas</a><a href="#pneus">Pneus</a><a href="#motor">Motor</a><a href="#suspensao">Suspensão</a><a href="#cubos">Cubos</a></nav>
+<button class="cart-btn" onclick="openCart()">🛒 Carrinho <b id="cartCount">0</b></button>
+</div></header>
+<main id="top">
+<section class="hero"><div class="wrap hero-grid"><div><div class="pill">CATÁLOGO ONLINE • LINHA PESADA</div><h1>Peças para caminhões e carretas com <em>compra rápida e segura.</em></h1><p>Escolha o produto, veja preço e especificações e siga por dois caminhos: <strong>Comprar direto no site</strong> ou <strong>Comprar com especialista no WhatsApp</strong>.</p><div class="hero-actions"><a class="btn primary" href="#produtos">Ver produtos</a><a class="btn outline" target="_blank" rel="noopener" href="https://api.whatsapp.com/send/?phone=5512981160171&text=Ol%C3%A1%21%20Vim%20pelo%20site%20e%20quero%20ajuda%20com%20uma%20pe%C3%A7a.&type=phone_number&app_absent=0">Falar com especialista</a></div><div class="trust"><span>✓ Preços visíveis</span><span>✓ PIX no checkout</span><span>✓ Atendimento humano</span></div></div><div class="hero-panel"><div class="panel-tag">COMPRE DO SEU JEITO</div><div class="choice"><b>01</b><span><strong>Comprar direto no site</strong><small>Adicione ao carrinho e gere seu PIX.</small></span></div><div class="choice"><b>02</b><span><strong>Comprar com especialista</strong><small>Tire dúvidas de aplicação pelo WhatsApp.</small></span></div><div class="secure"><span>🔒</span><div><strong>Pagamento protegido</strong><small>O checkout usa a API do seu gateway PIX.</small></div></div></div></div></section>
+<section class="benefits"><div class="wrap benefits-grid"><div><b>Preço e condição</b><span>valor exibido antes da compra</span></div><div><b>Aplicação detalhada</b><span>medidas, códigos e veículos compatíveis</span></div><div><b>Compra assistida</b><span>especialista disponível no WhatsApp</span></div><div><b>PIX integrado</b><span>cobrança dinâmica no checkout</span></div></div></section>
+<section class="wrap catalog" id="produtos"><div class="section-head"><div><div class="eyebrow">CATÁLOGO</div><h2>Encontre sua peça</h2></div><p>Os preços abaixo são referências atuais pesquisadas em lojas online. Antes de colocar em produção, confirme seus preços, estoque e margem.</p></div><div class="filters"><button class="filter active" data-filter="all">Todos</button><button class="filter" data-filter="rodas">Rodas</button><button class="filter" data-filter="pneus">Pneus</button><button class="filter" data-filter="motor">Motor</button><button class="filter" data-filter="suspensao">Suspensão</button><button class="filter" data-filter="cubos">Cubos</button><input id="search" placeholder="Buscar produto, código ou medida..."></div>
+<div id="catalog"></div></section>
+<section class="cta"><div class="wrap cta-in"><div><div class="eyebrow">PRECISA CONFIRMAR A APLICAÇÃO?</div><h2>Fale com um especialista antes de comprar.</h2><p>Envie o modelo, ano, medida ou código da peça. O atendimento ajuda a reduzir erro de aplicação.</p></div><a class="btn whatsapp" target="_blank" rel="noopener" href="https://api.whatsapp.com/send/?phone=5512981160171&text=Ol%C3%A1%21%20Vim%20pelo%20site%20e%20quero%20confirmar%20a%20aplica%C3%A7%C3%A3o%20de%20uma%20pe%C3%A7a.&type=phone_number&app_absent=0">WhatsApp do especialista →</a></div></section>
+</main>
+<footer><div class="wrap footer-in"><div><b>LINHA PESADA</b><small>CAMINHÕES & CARRETAS</small></div><p>Catálogo sujeito a atualização de preço, estoque e condições. Confirme a disponibilidade antes da expedição.</p><a target="_blank" rel="noopener" href="https://api.whatsapp.com/send/?phone=5512981160171&text=Ol%C3%A1%21%20Vim%20pelo%20site.&type=phone_number&app_absent=0">WhatsApp</a></div></footer>
+<div class="modal" id="cartModal"><div class="modal-card"><button class="close" onclick="closeCart()">×</button><h2>Seu carrinho</h2><div id="cartItems"></div><div class="cart-total"><span>Total</span><strong id="cartTotal">R$ 0,00</strong></div><button class="checkout" onclick="checkout()">Continuar para compra PIX</button><a class="expert" target="_blank" rel="noopener" href="https://api.whatsapp.com/send/?phone=5512981160171&text=Ol%C3%A1%21%20Quero%20comprar%20um%20produto%20do%20site%20com%20ajuda%20de%20um%20especialista.&type=phone_number&app_absent=0">Comprar com especialista no WhatsApp</a></div></div>
+<div class="modal" id="checkoutModal"><div class="modal-card checkout-card"><button class="close" onclick="closeCheckout()">×</button><div id="checkoutContent"></div></div></div>
+<script src="app.js"></script>
+</body></html>
