@@ -1,24 +1,13 @@
 (() => {
-  const photoFixes = {
-    r4: '/produto-imagem/r4',
-    r5: '/produto-imagem/r5',
-    p2: '/produto-imagem/p2',
-    p3: '/produto-imagem/p3',
-    p4: '/produto-imagem/p4',
-    p5: '/produto-imagem/p5',
-    p7: '/produto-imagem/p7',
-    motor: '/produto-imagem/motor'
-  };
+  // Todo produto com foto externa passa a usar uma rota local do próprio site.
+  // O servidor busca a foto real e faz cache, evitando URL externa no HTML final.
   const apply = () => {
     if (!Array.isArray(products) || !products.length) return false;
     let changed = false;
     products.forEach(p => {
-      if (photoFixes[p.id] && p.img !== photoFixes[p.id]) {
-        p.img = photoFixes[p.id];
-        changed = true;
-      }
-      if (p.code === '3010568' && p.img !== photoFixes.motor) {
-        p.img = photoFixes.motor;
+      if (!p || !p.id) return;
+      if (typeof p.img === 'string' && /^https?:\/\//i.test(p.img)) {
+        p.img = `/produto-imagem/${encodeURIComponent(p.id)}`;
         changed = true;
       }
     });
@@ -26,5 +15,5 @@
     return true;
   };
   const timer = setInterval(() => { if (apply()) clearInterval(timer); }, 100);
-  setTimeout(() => clearInterval(timer), 15000);
+  setTimeout(() => clearInterval(timer), 20000);
 })();
