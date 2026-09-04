@@ -8,7 +8,9 @@
     m1: '/produto-imagem/m1', m2: '/produto-imagem/m2', m3: '/produto-imagem/m3', m4: '/produto-imagem/m4',
     m5: '/produto-imagem/m5', m6: '/produto-imagem/m6', m7: '/produto-imagem/m7', m8: '/produto-imagem/m8',
     m9: '/produto-imagem/m9', m10: '/produto-imagem/m10',
-    motor: '/produto-imagem/motor'
+    motor: '/produto-imagem/motor',
+    s1: '/produto-imagem/s1', s2: '/produto-imagem/s2', s4: '/produto-imagem/s4',
+    s6: '/produto-imagem/s6', s9: '/produto-imagem/s9'
   };
 
   const apply = () => {
