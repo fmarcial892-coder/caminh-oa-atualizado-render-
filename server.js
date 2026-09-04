@@ -55,8 +55,13 @@ app.post('/api/create-pix', async (req, res) => {
     const payload = {
       amountCents,
       description: 'Pedido Linha Pesada',
+      // Dados digitados pelo cliente no checkout.
+      // Enviamos nos dois nomes aceitos/usados pela API para garantir que
+      // a cobrança e a identificação do customer/devedor recebam os mesmos dados.
       payerName,
       payerDocument: doc,
+      customerName: payerName,
+      customerDocument: doc,
       externalId,
       payerEmail: payerEmail || undefined,
       payerPhone: payerPhone ? String(payerPhone).replace(/\D/g, '') : undefined,
@@ -87,7 +92,9 @@ app.post('/api/create-pix', async (req, res) => {
       pixCopyPaste,
       pixCode: data.pixCode || pixCopyPaste,
       qrCode,
-      externalId
+      externalId,
+      payerName,
+      payerDocument: doc
     });
   } catch (err) {
     console.error(err);
