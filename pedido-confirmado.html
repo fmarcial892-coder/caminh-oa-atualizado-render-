@@ -4,6 +4,14 @@
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+i:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-N694KWH8');</script>
 <!-- End Google Tag Manager -->
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18430561099"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','AW-18430561099');
+</script>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Pedido confirmado | Linha Pesada</title>
 <meta name="description" content="Confirmação do pagamento do pedido Linha Pesada.">
@@ -28,14 +36,12 @@ const productCache={};
 fetch('/products.json?catalog=20260904-confirm',{cache:'no-store'}).then(r=>r.ok?r.json():[]).then(products=>{items.forEach(i=>{const p=products.find(x=>x.id===i.id);if(p)productCache[i.id]=p});document.getElementById('items').innerHTML=items.map(i=>{const p=productCache[i.id];return p?`<div class="item">${i.qty}x ${p.name}<br><small>${p.code||''} · ${brl(p.pix*i.qty)}</small></div>`:''}).join('');setWhatsApp()}).catch(()=>setWhatsApp());
 function setWhatsApp(){const info=items.map(i=>{const p=productCache[i.id];return p?`${i.qty}x ${p.name} | Código/ref.: ${p.code||''} | ${brl(p.pix*i.qty)}`:`${i.qty}x ${i.id}`}).join('\n');const text=`Olá! Realizei o pagamento PIX pelo site Linha Pesada e o pagamento foi confirmado.\n\nCliente: ${name}\nPedido: ${transactionId||'Confirmado'}\n\nItens:\n${info||'não informado'}\n\nValor total: ${brl(total)}\n\nEstou enviando o comprovante do pagamento para conferência e liberação do meu pedido para entrega no endereço informado na compra.`;const wa=`https://api.whatsapp.com/send/?phone=5512981160171&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;document.getElementById('whatsapp').href=wa;}
 window.dataLayer.push({event:'purchase',transaction_id:transactionId||`site-${Date.now()}`,value:total,currency:'BRL',items:items.map(i=>({item_id:i.id,quantity:i.qty}))});
-if(typeof window.gtag==='function'){
-  window.gtag('event','conversion',{
-    'send_to':'AW-18430561099/ONefCODQpe8cEMuWsNRE',
-    'value':total,
-    'currency':'BRL',
-    'transaction_id':transactionId||''
-  });
-}
+gtag('event','conversion',{
+  'send_to':'AW-18430561099/ONefCODQpe8cEMuWsNRE',
+  'value':total,
+  'currency':'BRL',
+  'transaction_id':transactionId||''
+});
 localStorage.removeItem('lp_last_order_pending');
 </script>
 </body></html>
