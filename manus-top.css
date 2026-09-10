@@ -1,0 +1,53 @@
+/* Manus — topo e hero. Mantém o restante do site intacto. */
+.manus-wrap{width:min(1280px,100%);margin:0 auto;padding-left:24px;padding-right:24px}
+.topbar{background:#0b1720!important;border-bottom:1px solid #20303b!important;color:#d7e0e6!important;padding:8px 0!important;font-size:11px!important}
+.manus-topbar-in{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.manus-top-left,.manus-top-right{display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.manus-top-left span,.manus-top-right span,.manus-top-right a{color:#f4f7f9;text-decoration:none;white-space:nowrap}
+.manus-top-left span:first-child{color:#fff}
+.manus-top-right a:hover{color:#22c55e}
+header.header{position:relative!important;top:auto!important;background:#0b151d!important;color:#fff!important;box-shadow:none!important;border-bottom:1px solid #182833!important}
+.manus-header-in{min-height:72px;display:flex;align-items:center;gap:20px}
+.manus-brand{display:flex;align-items:center;flex:0 0 285px;height:64px;text-decoration:none}
+.manus-brand img{display:block;width:285px;max-height:58px;object-fit:contain;object-position:left center}
+.manus-search{display:flex;flex:1;max-width:430px;height:40px;margin-left:0}
+.manus-search input{width:100%;min-width:0;border:0;border-radius:4px 0 0 4px;background:#f1f3f7;color:#111827;padding:0 16px;font:14px Arial,sans-serif;outline:none}
+.manus-search button{width:46px;border:1px solid #80909c;border-left:0;border-radius:0 4px 4px 0;background:#0b1720;color:#fff;font-size:18px;font-weight:700}
+.manus-search button:hover{background:#162631}
+.manus-contact{margin-left:auto;display:flex;align-items:center;gap:20px;min-width:0}
+.manus-wa-contact{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;white-space:nowrap}
+.manus-wa-circle{width:34px;height:34px;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#22c55e;font-size:16px}
+.manus-wa-contact b,.manus-location b{display:block;font-size:12px;line-height:1.2}
+.manus-wa-contact small,.manus-location small{display:block;margin-top:2px;color:#9eb0bc;font-size:8px;line-height:1.2}
+.manus-divider{height:38px;width:1px;background:#43515a;opacity:.8}
+.manus-location{display:flex;align-items:center;gap:10px;white-space:nowrap}
+.manus-loc-icon{color:#ef3340;font-size:18px}
+.manus-cart{display:flex;align-items:center;gap:6px;border:1px solid #2b3a44;background:#16232c;color:#fff;border-radius:5px;padding:9px 11px;font-weight:700;font-size:12px}
+.manus-cart b{min-width:18px;height:18px;padding:0 4px;border-radius:10px;background:#e62129;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+header.header>nav,header.header>.nav>nav,header.header .nav,header.header>.wrap>nav{display:none!important}
+.mainnav{background:#172936!important;border-top:0!important;border-bottom:0!important}
+.manus-nav-in{display:flex;align-items:center}
+.manus-nav-in a{display:block;padding:12px 26px;color:#fff;text-decoration:none;font-size:12px;font-weight:800}
+.manus-nav-in a.active{background:#ef2630}
+.manus-nav-in a:hover{background:#263d4b}
+section.hero{position:relative!important;min-height:440px!important;overflow:hidden!important;background:#0d0f12!important;margin:0!important;padding:0!important}
+.manus-hero-bg{position:absolute;inset:0;z-index:0;overflow:hidden;background:#0d0f12}
+.manus-hero-bg img{width:100%;height:100%;object-fit:cover;object-position:center;opacity:.86;display:block}
+.manus-hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.97) 0%,rgba(0,0,0,.78) 42%,rgba(0,0,0,.20) 78%,rgba(0,0,0,.02) 100%)}
+.manus-hero-in{position:relative;z-index:1;min-height:440px;display:flex;align-items:center;justify-content:space-between;gap:40px;padding-top:54px;padding-bottom:54px}
+.manus-hero-copy{max-width:600px}
+.manus-hero-eyebrow{display:block;margin-bottom:10px;color:#e62129;font-size:14px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+.manus-hero-copy h1{margin:0 0 16px;color:#fff;font-size:64px;line-height:.92;font-weight:950;letter-spacing:-.045em;text-transform:uppercase;text-shadow:0 3px 20px rgba(0,0,0,.4)}
+.manus-hero-copy p{margin:0 0 28px;max-width:540px;color:#e4e8ec;font-size:17px;font-weight:600;line-height:1.35}
+.manus-hero-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.manus-hero-benefits div{display:flex;align-items:center;gap:9px;min-height:54px;padding:9px 11px;border:1px solid rgba(255,255,255,.12);border-radius:4px;background:rgba(0,0,0,.42);backdrop-filter:blur(4px);color:#fff;font-size:10px;line-height:1.2}
+.manus-hero-benefits span{flex:0 0 auto;font-size:15px;color:#e62129}
+.manus-hero-benefits div:nth-child(2) span{color:#34d399}
+.manus-hero-benefits div:nth-child(3) span{color:#38bdf8}
+.manus-discount{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:25px 30px;background:#e62129;color:#fff;border:4px solid rgba(255,255,255,.2);border-radius:16px;box-shadow:0 18px 40px rgba(0,0,0,.45);transform:rotate(2deg);text-align:center}
+.manus-discount strong{font-size:54px;line-height:.9;letter-spacing:-.06em}
+.manus-discount b{font-size:23px;line-height:1;margin-top:5px;letter-spacing:.05em}
+.manus-discount small{margin-top:10px;padding:5px 11px;border-radius:4px;background:rgba(0,0,0,.18);font-size:9px;font-weight:900;letter-spacing:.12em}
+@media (max-width:1100px){.manus-brand{flex-basis:235px}.manus-brand img{width:235px}.manus-contact{gap:10px}.manus-location{display:none}.manus-hero-copy h1{font-size:56px}.manus-hero-benefits{grid-template-columns:1fr}.manus-discount{padding:20px 24px}}
+@media (max-width:800px){.manus-wrap{padding-left:16px;padding-right:16px}.manus-topbar-in{align-items:flex-start}.manus-top-left,.manus-top-right{gap:8px 16px}.manus-top-right{display:none}.manus-header-in{min-height:62px;gap:10px}.manus-brand{flex-basis:180px;height:54px}.manus-brand img{width:180px}.manus-contact{margin-left:auto}.manus-wa-contact{display:none}.manus-divider{display:none}.manus-cart span{display:none}.manus-search{position:absolute;left:16px;right:16px;top:68px;max-width:none;height:38px}.header.header{padding-bottom:52px!important}.manus-nav-in a{padding:11px 18px}.manus-hero-in{min-height:420px;padding-top:44px;padding-bottom:44px}.manus-hero-copy h1{font-size:48px}.manus-hero-copy p{font-size:15px}.manus-discount{display:none}}
+@media (max-width:520px){.manus-topbar{font-size:9px}.manus-top-left span:nth-child(2){display:none}.manus-brand{flex-basis:155px}.manus-brand img{width:155px}.manus-hero-copy h1{font-size:40px}.manus-hero-eyebrow{font-size:11px}.manus-hero-benefits div{font-size:9px}.manus-nav-in a{padding:10px 15px;font-size:11px}}
