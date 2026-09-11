@@ -1,0 +1,10 @@
+.category-showcase .cat-tile:nth-child(1){
+  background-image:linear-gradient(90deg,rgba(26,30,39,.92) 0%,rgba(26,30,39,.62) 48%,rgba(26,30,39,.15) 100%),url('/assets/cat-rodas-ref.jpg') !important;
+  background-position:center !important;
+  background-size:cover !important;
+}
+.category-showcase .cat-tile:nth-child(2){
+  background-image:linear-gradient(90deg,rgba(26,30,39,.92) 0%,rgba(26,30,39,.62) 48%,rgba(26,30,39,.15) 100%),url('/assets/cat-pneus-ref.jpg') !important;
+  background-position:center !important;
+  background-size:cover !important;
+}
