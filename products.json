@@ -555,9 +555,9 @@
     "tag": "TESTE • PIX",
     "name": "PRODUTO TESTE — PAGAMENTO PIX R$ 2,00",
     "code": "TESTE-PIX-002",
-    "price": 6.25,
-    "pix": 5,
+    "price": 10.625,
+    "pix": 8.5,
     "img": "/assets/logo-linha-pesada.svg",
-    "desc": "Produto temporário para testar o checkout e a confirmação do pagamento PIX. Valor final com desconto: R$ 5,00."
+    "desc": "Produto temporário para testar o checkout e a confirmação do pagamento PIX. Valor final com desconto: R$ 8,50."
   }
 ]
