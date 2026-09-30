@@ -28,7 +28,7 @@ async function fetchImage(url,depth=0){
     try{
       const controller=new AbortController();
       const timer=setTimeout(()=>controller.abort(),15000);
-      const response=await fetch(source,{signal:controller.signal,headers:{'User-Agent':'Mozilla/5.0 (compatible; LinhaPesada/1.0)','Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8','Referer':source===url&&/^https?:\\/\\//i.test(url)?new URL(url).origin+'/':'https://wsrv.nl/'}});
+      const response=await fetch(source,{signal:controller.signal,headers:{'User-Agent':'Mozilla/5.0 (compatible; LinhaPesada/1.0)','Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8','Referer':source===url&&/^https?:\/\//i.test(url)?new URL(url).origin+'/':'https://wsrv.nl/'}});
       clearTimeout(timer);
       if(!response.ok) continue;
       const type=response.headers.get('content-type')||'';
@@ -56,7 +56,7 @@ async function fetchImage(url,depth=0){
 
 app.get('/produto-imagem/:id',async(req,res)=>{
   const url=getProductImageSource(req.params.id);
-  if(!url||!/^https?:\\/\\//i.test(url)) return res.status(404).end();
+  if(!url||!/^https?:\/\//i.test(url)) return res.status(404).end();
   try{
     if(imageCache.has(url)){
       const c=imageCache.get(url);
