@@ -129,9 +129,10 @@ app.post('/api/create-pix',async(req,res)=>{
     const raw=await response.text();
     let data={};
     try{data=raw?JSON.parse(raw):{}}catch(_){}
+    console.log('Elite PAY /deposit:', JSON.stringify({status:response.status, ok:response.ok, body:data}));
     if(!response.ok||data?.success===false){
-      const msg=data?.message||data?.error||'A Elite PAY recusou a criação do PIX.';
-      return res.status(response.status||502).json({error:String(msg)});
+      const msg=data?.message||data?.error?.message||data?.error||data?.detail||'A Elite PAY recusou a criação do PIX.';
+      return res.status(response.status>=400?response.status:502).json({error:String(msg), gatewayStatus:response.status});
     }
     const id=String(data.transactionId||'').trim();
     const pix=String(data.copyPaste||'').trim();
