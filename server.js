@@ -91,15 +91,20 @@ function eliteWebhookHandler(req,res){
     const verified=verifyEliteWebhook(req);
     if(!verified.ok) return res.status(401).json({error:verified.error});
     const event=JSON.parse(verified.rawBody.toString('utf8'));
-    const id=String(event?.transactionId||'').trim();
+    const id=String(event?.transactionId||event?.transaction_id||event?.data?.transactionId||event?.data?.transaction_id||'').trim();
+    const eventName=String(event?.event||event?.type||'').toUpperCase();
+    const state=String(event?.transactionState||event?.status||event?.data?.transactionState||event?.data?.status||'').toUpperCase();
+    const paidEvents=['DEPOSITO_COMPLETO','DEPOSIT_COMPLETED','PAYMENT_SUCCESS','PAYMENT_CONFIRMED','PAYMENT_PAID'];
+    const paidStates=['COMPLETO','CONCLUIDO','CONCLUIDO COM SUCESSO','PAGO','PAID','COMPLETED','SUCCESS'];
+    const paid=paidEvents.includes(eventName)||paidStates.includes(state);
     if(id){
-      const old=transactions.get(id)||{};
-      const state=String(event?.transactionState||event?.status||'').toUpperCase();
-      const paid=['COMPLETO','CONCLUIDO','PAGO','PAID'].includes(state);
-      transactions.set(id,{...old,...event,status:paid?'PAID':state||'PENDING'});
+      const previous=transactions.get(id)||{};
+      transactions.set(id,{...previous,...event,status:paid?'PAID':state||eventName||'PENDING'});
+      console.log('Elite PAY webhook recebido:',JSON.stringify({id,event:eventName,state,status:paid?'PAID':'PENDING'}));
+    }else{
+      console.warn('Elite PAY webhook sem transactionId:',JSON.stringify(event));
     }
-    console.log('Elite PAY webhook:',event?.transactionState||event?.status||'unknown',id);
-    return res.json({ok:true});
+    return res.json({ok:true,paid,id});
   }catch(e){
     console.error('Elite webhook:',e);
     return res.status(400).json({error:'Webhook inválido'});
