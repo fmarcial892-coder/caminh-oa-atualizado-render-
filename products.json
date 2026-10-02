@@ -339,5 +339,16 @@
     "pix": 1033.98,
     "img": "https://www.tagaautopartes.com.br/fotos/morelate/122188.png",
     "desc": "Castertech, aplicações Mercedes-Benz Novo Actros 2546 e 2651. Garantia informada: 12 meses."
+  },
+  {
+    "id": "test12",
+    "cat": "motor",
+    "tag": "TESTE • PIX",
+    "name": "Produto de Teste PIX — R$ 12,00",
+    "code": "TESTE-PIX-12",
+    "price": 12,
+    "pix": 12,
+    "img": "https://via.placeholder.com/600x400?text=Produto+Teste+PIX",
+    "desc": "Produto exclusivo para teste de compra e cobrança PIX no valor final de R$ 12,00."
   }
 ]
