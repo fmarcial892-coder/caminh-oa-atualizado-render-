@@ -38,9 +38,9 @@ async function fetchImage(url,depth=0){
       if(type.includes('text/html')&&depth<2){
         const html=body.toString('utf8');
         const matches=[
-          html.match(/<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i),
-          html.match(/<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i),
-          html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']/i)
+          html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i),
+          html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i),
+          html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
         ];
         let imageUrl=matches.find(Boolean)?.[1];
         if(imageUrl){
