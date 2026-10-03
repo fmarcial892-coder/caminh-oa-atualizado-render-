@@ -124,8 +124,7 @@ app.post('/api/create-pix',async(req,res)=>{
     const doc=String(payerDocument||'').replace(/\D/g,'');
     if(!clientId||!clientSecret) return res.status(500).json({error:'ELITEPAY_CLIENT_ID/ELITEPAY_CLIENT_SECRET não configurados no servidor'});
     if(typeof amount!=='number'||!Number.isFinite(amount)||amount<=0) return res.status(400).json({error:'Valor inválido.'});
-    const amountText=amount.toFixed(2);
-    const amountForElite=Math.round(Number(amountText)*100);
+    const amountForElite=Number(amount.toFixed(2));
     if(!payerName||!/^\d{11}$|^\d{14}$/.test(doc)) return res.status(400).json({error:'Nome e CPF/CNPJ válido são obrigatórios'});
         const response=await fetch(`${ELITE_API}/deposit`,{
       method:'POST',
