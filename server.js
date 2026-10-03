@@ -118,13 +118,14 @@ app.use(express.json({limit:'1mb'}));
 
 app.post('/api/create-pix',async(req,res)=>{
   try{
-    const {amountCents,payerName,payerDocument,metadata}=req.body||{};
+    const {amount,payerName,payerDocument,metadata}=req.body||{};
     const clientId=process.env.ELITEPAY_CLIENT_ID;
     const clientSecret=process.env.ELITEPAY_CLIENT_SECRET;
     const doc=String(payerDocument||'').replace(/\D/g,'');
     if(!clientId||!clientSecret) return res.status(500).json({error:'ELITEPAY_CLIENT_ID/ELITEPAY_CLIENT_SECRET não configurados no servidor'});
-    if(!Number.isInteger(amountCents)||amountCents<=0) return res.status(400).json({error:'Valor inválido: amountCents deve ser um inteiro em centavos.'});
-    const amountForElite=amountCents;
+    if(typeof amount!=='number'||!Number.isFinite(amount)||amount<=0) return res.status(400).json({error:'Valor inválido.'});
+    const amountText=amount.toFixed(2);
+    const amountForElite=Number(amountText);
     if(!payerName||!/^\d{11}$|^\d{14}$/.test(doc)) return res.status(400).json({error:'Nome e CPF/CNPJ válido são obrigatórios'});
         const response=await fetch(`${ELITE_API}/deposit`,{
       method:'POST',
