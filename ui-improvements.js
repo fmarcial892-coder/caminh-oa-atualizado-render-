@@ -1,7 +1,7 @@
 (function(){
   function enhance(){
     document.querySelectorAll('.actions .expert').forEach(function(btn){
-      btn.textContent='Comprar no WhatsApp';
+      if(btn.textContent!=='Comprar no WhatsApp') btn.textContent='Comprar no WhatsApp';
       btn.setAttribute('aria-label','Comprar no WhatsApp');
     });
 
