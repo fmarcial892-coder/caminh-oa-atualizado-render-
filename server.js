@@ -38,9 +38,9 @@ async function fetchImage(url,depth=0){
       if(type.includes('text/html')&&depth<2){
         const html=body.toString('utf8');
         const matches=[
-          html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i),
-          html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i),
-          html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+          html.match(/<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i),
+          html.match(/<meta[^>]+name=[\"']twitter:image[\"'][^>]+content=[\"']([^\"']+)[\"']/i),
+          html.match(/<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']/i)
         ];
         let imageUrl=matches.find(Boolean)?.[1];
         if(imageUrl){
@@ -125,7 +125,7 @@ app.post('/api/create-pix',async(req,res)=>{
     if(!clientId||!clientSecret) return res.status(500).json({error:'ELITEPAY_CLIENT_ID/ELITEPAY_CLIENT_SECRET não configurados no servidor'});
     if(!Number.isInteger(amountCents)||amountCents<1) return res.status(400).json({error:'Valor inválido.'});
     if(!payerName||!/^\d{11}$|^\d{14}$/.test(doc)) return res.status(400).json({error:'Nome e CPF/CNPJ válido são obrigatórios'});
-    const amount=Number((amountCents/100).toFixed(2));
+    const amount=amountCents;
     const response=await fetch(`${ELITE_API}/deposit`,{
       method:'POST',
       headers:{'x-client-id':clientId,'x-client-secret':clientSecret,'Content-Type':'application/json','Accept':'application/json'},
