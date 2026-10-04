@@ -1,5 +1,5 @@
 (function(){
-  const WA_URL='https://api.whatsapp.com/send/?phone=5512981160171&text=Ol%C3%A1%21%20Vim%20pelo%20site%20e%20quero%20ajuda%20com%20uma%20pe%C3%A7a.&type=phone_number&app_absent=0';
+  const WA_URL='https://api.whatsapp.com/send/?phone=5588920033309&text=Ol%C3%A1%21%20Vim%20pelo%20site%20e%20quero%20ajuda%20com%20uma%20pe%C3%A7a.&type=phone_number&app_absent=0';
   function replaceTop(){
     const topbar=document.querySelector('.topbar'),header=document.querySelector('header.header'),mainnav=document.querySelector('.mainnav'),hero=document.querySelector('section.hero');
     if(!topbar||!header||!mainnav||!hero)return;
