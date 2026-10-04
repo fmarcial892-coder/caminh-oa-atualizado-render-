@@ -37,17 +37,9 @@ async function fetchImage(url,depth=0){
       if(type.startsWith('image/')) return {body,type};
       if(type.includes('text/html')&&depth<2){
         const html=body.toString('utf8');
-        const matches=[
-          html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i),
-          html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i),
-          html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
-        ];
+        const matches=[html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i),html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i),html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)];
         let imageUrl=matches.find(Boolean)?.[1];
-        if(imageUrl){
-          try{imageUrl=new URL(imageUrl,url).href}catch(_){}
-          const image=await fetchImage(imageUrl,depth+1);
-          if(image) return image;
-        }
+        if(imageUrl){try{imageUrl=new URL(imageUrl,url).href}catch(_){} const image=await fetchImage(imageUrl,depth+1); if(image)return image;}
       }
     }catch(e){ console.error('imagem fonte:',source,e.message); }
   }
@@ -58,19 +50,11 @@ app.get('/produto-imagem/:id',async(req,res)=>{
   const url=getProductImageSource(req.params.id);
   if(!url||!/^https?:\/\//i.test(url)) return res.status(404).end();
   try{
-    if(imageCache.has(url)){
-      const c=imageCache.get(url);
-      res.set('Content-Type',c.type);
-      res.set('Cache-Control','public,max-age=86400');
-      return res.send(c.body);
-    }
+    if(imageCache.has(url)){const c=imageCache.get(url);res.set('Content-Type',c.type);res.set('Cache-Control','public,max-age=86400');return res.send(c.body);}
     const image=await fetchImage(url);
-    if(!image) return res.status(502).end();
-    imageCache.set(url,image);
-    res.set('Content-Type',image.type);
-    res.set('Cache-Control','public,max-age=86400');
-    return res.send(image.body);
-  }catch(e){ console.error('produto-imagem:',e.message); return res.status(502).end(); }
+    if(!image)return res.status(502).end();
+    imageCache.set(url,image);res.set('Content-Type',image.type);res.set('Cache-Control','public,max-age=86400');return res.send(image.body);
+  }catch(e){console.error('produto-imagem:',e.message);return res.status(502).end();}
 });
 
 function verifyEliteWebhook(req){
@@ -78,18 +62,18 @@ function verifyEliteWebhook(req){
   const ts=req.get('X-Elite-Timestamp')||'';
   const sig=req.get('X-Elite-Signature')||'';
   const rawBody=Buffer.isBuffer(req.body)?req.body:Buffer.from(JSON.stringify(req.body||{}));
-  if(!secret) return {ok:true,rawBody};
-  if(!ts||!sig) return {ok:false,error:'Assinatura Elite PAY ausente',rawBody};
+  if(!secret)return {ok:true,rawBody};
+  if(!ts||!sig)return {ok:false,error:'Assinatura Elite PAY ausente',rawBody};
   const expected='sha256='+crypto.createHmac('sha256',secret).update(ts+'.'+rawBody.toString('utf8')).digest('hex');
   const a=Buffer.from(sig),b=Buffer.from(expected);
-  if(a.length!==b.length||!crypto.timingSafeEqual(a,b)) return {ok:false,error:'Assinatura Elite PAY inválida',rawBody};
+  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return {ok:false,error:'Assinatura Elite PAY inválida',rawBody};
   return {ok:true,rawBody};
 }
 
 function eliteWebhookHandler(req,res){
   try{
     const verified=verifyEliteWebhook(req);
-    if(!verified.ok) return res.status(401).json({error:verified.error});
+    if(!verified.ok)return res.status(401).json({error:verified.error});
     const event=JSON.parse(verified.rawBody.toString('utf8'));
     const id=String(event?.transactionId||event?.transaction_id||event?.data?.transactionId||event?.data?.transaction_id||'').trim();
     const eventName=String(event?.event||event?.type||'').toUpperCase();
@@ -97,24 +81,33 @@ function eliteWebhookHandler(req,res){
     const paidEvents=['DEPOSITO_COMPLETO','DEPOSIT_COMPLETED','PAYMENT_SUCCESS','PAYMENT_CONFIRMED','PAYMENT_PAID'];
     const paidStates=['COMPLETO','CONCLUIDO','CONCLUIDO COM SUCESSO','PAGO','PAID','COMPLETED','SUCCESS'];
     const paid=paidEvents.includes(eventName)||paidStates.includes(state);
-    if(id){
-      const previous=transactions.get(id)||{};
-      transactions.set(id,{...previous,...event,status:paid?'PAID':state||eventName||'PENDING'});
-      console.log('Elite PAY webhook recebido:',JSON.stringify({id,event:eventName,state,status:paid?'PAID':'PENDING'}));
-    }else{
-      console.warn('Elite PAY webhook sem transactionId:',JSON.stringify(event));
-    }
+    if(id){const previous=transactions.get(id)||{};transactions.set(id,{...previous,...event,status:paid?'PAID':state||eventName||'PENDING'});console.log('Elite PAY webhook recebido:',JSON.stringify({id,event:eventName,state,status:paid?'PAID':'PENDING'}));}
+    else console.warn('Elite PAY webhook sem transactionId:',JSON.stringify(event));
     return res.json({ok:true,paid,id});
-  }catch(e){
-    console.error('Elite webhook:',e);
-    return res.status(400).json({error:'Webhook inválido'});
-  }
+  }catch(e){console.error('Elite webhook:',e);return res.status(400).json({error:'Webhook inválido'});}
 }
 
 app.post('/api/webhook',express.raw({type:'application/json'}),eliteWebhookHandler);
 app.post('/api/webhook/elitepay',express.raw({type:'application/json'}),eliteWebhookHandler);
-
 app.use(express.json({limit:'1mb'}));
+
+function moneyToCents(value){
+  let text;
+  if(typeof value==='number'){
+    if(!Number.isFinite(value))throw new Error('Valor inválido.');
+    text=value.toFixed(2);
+  }else if(typeof value==='string'){
+    text=value.trim().replace(/^R\$\s*/i,'').replace(/\s/g,'');
+    if(!text)throw new Error('Valor inválido.');
+  }else throw new Error('Valor inválido.');
+  if(text.includes(',')&&text.includes('.'))text=text.replace(/\./g,'').replace(',','.');
+  else if(text.includes(','))text=text.replace(',','.');
+  if(!/^\d+(?:\.\d{1,2})?$/.test(text))throw new Error('Valor monetário inválido.');
+  const [whole,fraction='']=text.split('.');
+  const cents=Number(whole+fraction.padEnd(2,'0'));
+  if(!Number.isSafeInteger(cents)||cents<=0)throw new Error('Valor monetário inválido.');
+  return cents;
+}
 
 app.post('/api/create-pix',async(req,res)=>{
   try{
@@ -122,67 +115,45 @@ app.post('/api/create-pix',async(req,res)=>{
     const clientId=process.env.ELITEPAY_CLIENT_ID;
     const clientSecret=process.env.ELITEPAY_CLIENT_SECRET;
     const doc=String(payerDocument||'').replace(/\D/g,'');
-    if(!clientId||!clientSecret) return res.status(500).json({error:'ELITEPAY_CLIENT_ID/ELITEPAY_CLIENT_SECRET não configurados no servidor'});
-    if(typeof amount!=='number'||!Number.isFinite(amount)||amount<=0) return res.status(400).json({error:'Valor inválido.'});
-    const amountForElite=Number(amount.toFixed(2));
-    console.log(`Elite PAY /deposit → amount enviado: ${amountForElite.toFixed(2)}`);
-    if(!payerName||!/^\d{11}$|^\d{14}$/.test(doc)) return res.status(400).json({error:'Nome e CPF/CNPJ válido são obrigatórios'});
-        const response=await fetch(`${ELITE_API}/deposit`,{
+    if(!clientId||!clientSecret)return res.status(500).json({error:'ELITEPAY_CLIENT_ID/ELITEPAY_CLIENT_SECRET não configurados no servidor'});
+    let amountCents;
+    try{amountCents=moneyToCents(amount);}catch(e){return res.status(400).json({error:e.message});}
+    if(amountCents>1500000)return res.status(400).json({error:'Valor acima do limite de R$ 15.000,00.'});
+    console.log(`Elite PAY /deposit → amount enviado: ${amountCents}`);
+    if(!payerName||!/^\d{11}$|^\d{14}$/.test(doc))return res.status(400).json({error:'Nome e CPF/CNPJ válido são obrigatórios'});
+    const response=await fetch(`${ELITE_API}/deposit`,{
       method:'POST',
       headers:{'x-client-id':clientId,'x-client-secret':clientSecret,'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({amount:amountForElite,description:'Pedido Linha Pesada',payerName,payerDocument:doc})
+      body:JSON.stringify({amount:amountCents,description:'Pedido Linha Pesada',payerName,payerDocument:doc})
     });
     const raw=await response.text();
     let data={};
     try{data=raw?JSON.parse(raw):{}}catch(_){}
-    console.log('Elite PAY /deposit:', JSON.stringify({status:response.status, ok:response.ok, body:data}));
+    console.log('Elite PAY /deposit:',JSON.stringify({status:response.status,ok:response.ok,body:data}));
     if(!response.ok||data?.success===false){
       const msg=data?.message||data?.error?.message||data?.error||data?.detail||'A Elite PAY recusou a criação do PIX.';
-      return res.status(response.status>=400?response.status:502).json({error:String(msg), gatewayStatus:response.status});
+      return res.status(response.status>=400?response.status:502).json({error:String(msg),gatewayStatus:response.status});
     }
     const id=String(data.transactionId||'').trim();
     const pix=String(data.copyPaste||'').trim();
-    if(!id||!pix) return res.status(502).json({error:'A Elite PAY criou a transação, mas não retornou transactionId/copyPaste.'});
+    if(!id||!pix)return res.status(502).json({error:'A Elite PAY criou a transação, mas não retornou transactionId/copyPaste.'});
     let qr=data.qrcodeUrl||null;
-    if(typeof qr==='string'&&qr.startsWith('base64:')) qr='data:image/png;base64,'+qr.slice(7);
-    if(!qr){
-      try{qr=await QRCode.toDataURL(pix,{margin:1,width:280});}catch(e){console.error('QR local:',e);}
-    }
-    transactions.set(id,{...data,transactionId:id,metadata:metadata||{},status:String(data.status||'PENDENTE').toUpperCase()==='COMPLETO'?'PAID':'PENDING'});
+    if(typeof qr==='string'&&qr.startsWith('base64:'))qr='data:image/png;base64,'+qr.slice(7);
+    if(!qr){try{qr=await QRCode.toDataURL(pix,{margin:1,width:280});}catch(e){console.error('QR local:',e);}}
+    transactions.set(id,{...data,transactionId:id,amountCents,metadata:metadata||{},status:String(data.status||'PENDENTE').toUpperCase()==='COMPLETO'?'PAID':'PENDING'});
     return res.json({id,status:data.status||'PENDENTE',pixCopyPaste:pix,pixCode:pix,qrCode:qr,expiresAt:null,externalId:id,payerName,payerDocument:doc});
-  }catch(e){
-    console.error('create-pix:',e);
-    return res.status(502).json({error:'Não foi possível conectar à Elite PAY para criar o PIX.'});
-  }
+  }catch(e){console.error('create-pix:',e);return res.status(502).json({error:'Não foi possível conectar à Elite PAY para criar o PIX.'});}
 });
 
 app.get('/api/payment-status/:id',(req,res)=>{
   const id=String(req.params.id||'').trim();
-  if(!id) return res.status(400).json({error:'Transação inválida'});
-  if(!process.env.ELITEPAY_CLIENT_ID||!process.env.ELITEPAY_CLIENT_SECRET) return res.status(500).json({error:'Credenciais Elite PAY não configuradas no servidor'});
-  const local=transactions.get(id);
-  const state=String(local?.status||local?.transactionState||'PENDING').toUpperCase();
-  const paid=local?.status==='PAID'||['COMPLETO','CONCLUIDO','PAGO','PAID'].includes(state);
-  return res.json({
-    id,
-    status:paid?'PAID':'PENDING',
-    amountCents:Math.round(Number(local?.value||0)*100),
-    externalReference:local?.externalReference||id,
-    metadata:local?.metadata||{}
-  });
+  if(!id)return res.status(400).json({error:'ID inválido.'});
+  const local=transactions.get(id)||null;
+  const rawStatus=String(local?.status||local?.transactionState||local?.state||'PENDING').toUpperCase();
+  const paid=['PAID','COMPLETO','CONCLUIDO','CONCLUIDO COM SUCESSO','PAGO','COMPLETED','SUCCESS'].includes(rawStatus);
+  return res.json({id,status:paid?'PAID':rawStatus,amountCents:Number.isSafeInteger(local?.amountCents)?local.amountCents:null,metadata:local?.metadata||null});
 });
 
-app.get('/health',(req,res)=>res.json({
-  ok:true,
-  gateway:'Elite PAYbr',
-  elitepayConfigured:Boolean(process.env.ELITEPAY_CLIENT_ID&&process.env.ELITEPAY_CLIENT_SECRET)
-}));
-
-app.get('/pedido-confirmado.html',(req,res)=>{
-  res.set('Content-Security-Policy',"default-src 'self';script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net;script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net;img-src 'self' data: blob: https:;connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com https://www.googleadservices.com https://googleads.g.doubleclick.net;style-src 'self' 'unsafe-inline' https:;font-src 'self' data: https:;frame-src 'self' https://www.googletagmanager.com https://www.google.com;");
-  return res.sendFile(path.join(__dirname,'pedido-confirmado.html'));
-});
-
-app.use(express.static(path.join(__dirname)));
-app.get('*',(req,res)=>res.sendFile(path.join(__dirname,'index.html')));
-app.listen(PORT,'0.0.0.0',()=>console.log(`Linha Pesada online na porta ${PORT} - Elite PAYbr`));
+app.get('/health',(req,res)=>res.json({ok:true,service:'Linha Pesada',elitePay:true}));
+app.use(express.static(__dirname));
+app.listen(PORT,()=>console.log(`Linha Pesada online na porta ${PORT} - Elite PAYbr`));
