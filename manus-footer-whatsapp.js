@@ -18,3 +18,15 @@
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
+
+function whatsappAfterPayment(){
+  const items=cart.length?cart:JSON.parse(localStorage.getItem('lp_last_order_items')||'[]');
+  const info=items.map(i=>{
+    const p=products.find(x=>x.id===i.id);
+    return p?`${i.qty}x ${p.name} | Código/ref.: ${p.code} | ${brl(salePrice(p)*i.qty)}`:'';
+  }).filter(Boolean).join('\n');
+  const total=Number(localStorage.getItem('lp_last_order_total')||0);
+  const name=localStorage.getItem('lp_last_order_name')||'';
+  const text=`Olá! Acabei de realizar o pagamento PIX pelo site Linha Pesada e o pagamento foi confirmado pelo gateway.\n\nCliente: ${name}\nPedido:\n${info}\n\nValor total: ${brl(total)}\n\nPagamento confirmado. Por favor, prossiga com meu pedido.`;
+  window.location.href=`https://api.whatsapp.com/send/?phone=5588920033309&text=${encodeURIComponent(text)}&type=phone_number&app_absent=0`;
+}
