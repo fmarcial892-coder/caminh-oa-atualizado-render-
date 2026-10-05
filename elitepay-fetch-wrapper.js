@@ -7,9 +7,17 @@ global.fetch=async function(input,init){
     try{
       const payload=JSON.parse(init.body);
       if(Object.prototype.hasOwnProperty.call(payload,'amount')){
-        // server.js já converte o valor em reais para centavos.
-        // Não converter novamente aqui: isso causava 1032,00 -> 10.320,00.
-        console.log(`Elite PAY /deposit → amount enviado ao gateway: ${payload.amount}`);
+        const raw=payload.amount;
+        // O server.js trabalha internamente em centavos (ex.: 103200).
+        // A Elite PAYbr, porém, deve receber o valor monetário com ponto:
+        // R$ 1.032,00 -> "1032.00". Convertemos uma única vez aqui.
+        if(typeof raw==='number' && Number.isSafeInteger(raw)){
+          payload.amount=(raw/100).toFixed(2);
+        }else if(typeof raw==='string' && /^\d+$/.test(raw.trim())){
+          payload.amount=(Number(raw.trim())/100).toFixed(2);
+        }
+        init={...init,body:JSON.stringify(payload)};
+        console.log(`Elite PAY /deposit → amount final enviado: ${payload.amount}`);
       }
     }catch(_){
       // Mantém o comportamento nativo para payloads que não sejam JSON.
