@@ -1,4 +1,19 @@
 (function(){
+  const WA='5511972938984';
+  const OLD='5588920033309';
+  const originalOpen=window.open;
+  window.open=function(url,...args){
+    let target=String(url||'');
+    if(target.includes('api.whatsapp.com/send')) target=target.replaceAll(OLD,WA);
+    return originalOpen.call(window,target,...args);
+  };
+  document.addEventListener('click',function(e){
+    const a=e.target.closest?.('a[href*="api.whatsapp.com/send"]');
+    if(!a)return;
+    if(a.href.includes(OLD)){
+      a.href=a.href.replaceAll(OLD,WA);
+    }
+  },true);
   function init(){
     var old=document.querySelector('footer');
     if(old){
