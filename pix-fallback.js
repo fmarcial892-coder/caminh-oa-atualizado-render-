@@ -1,7 +1,7 @@
 (function(){
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-  const whatsapp='5512981160171';
+  const whatsapp='5518920077617';
   const originalCreatePix=window.createPix;
   if(typeof originalCreatePix!=='function')return;
   function showFallback(total){

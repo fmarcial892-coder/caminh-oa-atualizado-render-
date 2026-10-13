@@ -29,7 +29,7 @@
     const total=window.cart.reduce((s,i)=>s+(products.find(p=>p.id===i.id)?.pix||0)*i.qty,0);
     const box=document.getElementById('checkoutContent');
     box.innerHTML=`<div class="eyebrow">CHECKOUT PIX</div><h2>Finalize sua compra</h2><p style="color:#91a1ae;font-size:12px">Preencha seus dados e o endereço completo para entrega.</p><div class="form-grid">
-      ${field('buyerName','Nome completo')} ${field('buyerEmail','E-mail')} ${field('buyerDoc','CPF ou CNPJ')} ${field('buyerPhone','Telefone')}
+      ${field('buyerName','Nome completo')} ${field('buyerEmail','E-mail')} ${field('buyerDoc','CPF ou CNPJ')} ${field('buyerPhone','Telefone (WhatsApp) *','type="tel" required autocomplete="tel" inputmode="tel"')}
       ${field('buyerCep','CEP','inputmode="numeric" maxlength="9" autocomplete="postal-code" oninput="this.value=this.value.replace(/\\D/g,\'\').replace(/(\\d{5})(\\d)/,\'$1-$2\');buscarCepEndereco()"')}
       <span id="cepStatus" style="grid-column:1/-1;color:#91a1ae;font-size:11px;margin-top:-8px"></span>
       ${field('buyerStreet','Rua ou Avenida','class="full" readonly autocomplete="street-address"')}
@@ -45,6 +45,8 @@
   };
   window.buscarCepEndereco=buscarCep;
   window.prepareAddressAndCreatePix=function(total){
+    const phone=(document.getElementById('buyerPhone')?.value||'').trim();
+    if(!phone){alert('Informe o telefone (WhatsApp) para continuar.');document.getElementById('buyerPhone')?.focus();return;}
     const cep=cepDigits(document.getElementById('buyerCep')?.value);
     const street=(document.getElementById('buyerStreet')?.value||'').trim();
     const number=(document.getElementById('buyerNumber')?.value||'').trim();
