@@ -160,7 +160,7 @@ app.post('/api/create-pix',async(req,res)=>{
     if(!qr){try{qr=await QRCode.toDataURL(pix,{margin:1,width:280});}catch(e){console.error('QR local:',e);}}
     const paymentStatus=String(data.status||'PENDENTE').toUpperCase()==='COMPLETO'?'PAID':'PENDING';
     transactions.set(id,{...data,transactionId:id,amountCents,metadata:metadata||{},status:paymentStatus});
-    void notifyAdminPanel('/api/ingest/order',{
+    await notifyAdminPanel('/api/ingest/order',{
       transactionId:id,
       customerName:metadata?.customerName||payerName,
       customerEmail:metadata?.customerEmail||'',
@@ -173,7 +173,10 @@ app.post('/api/create-pix',async(req,res)=>{
       source:metadata?.source||'site-linha-pesada',
       campaign:metadata?.campaign||{}
     });
-    if(paymentStatus==='PAID')void notifyAdminPanel('/api/ingest/payment',{transactionId:id,status:'PAID'});
+    const latestStatus=String(transactions.get(id)?.status||paymentStatus).toUpperCase();
+    if(paymentStatus==='PAID'||['PAID','COMPLETO','CONCLUIDO','CONCLUIDO COM SUCESSO','PAGO','COMPLETED','SUCCESS'].includes(latestStatus)){
+      await notifyAdminPanel('/api/ingest/payment',{transactionId:id,status:'PAID'});
+    }
     return res.json({id,status:data.status||'PENDENTE',pixCopyPaste:pix,pixCode:pix,qrCode:qr,expiresAt:null,externalId:id,payerName,payerDocument:doc});
   }catch(e){console.error('create-pix:',e);return res.status(502).json({error:'Não foi possível conectar à Elite PAY para criar o PIX.'});}
 });
