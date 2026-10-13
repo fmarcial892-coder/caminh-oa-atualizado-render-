@@ -11,6 +11,24 @@ const PRODUCT_IMAGES={r4:'https://www.mundodocaminhao.com.br/media/catalog/produ
 const imageCache=new Map();
 const transactions=new Map();
 
+async function notifyAdminPanel(endpoint,payload){
+  const base=String(process.env.ADMIN_PANEL_URL||'').trim();
+  const token=String(process.env.ADMIN_INGEST_TOKEN||'').trim();
+  if(!base||!token)return;
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),2500);
+  try{
+    const response=await fetch(new URL(endpoint,base),{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-ingest-token':token},
+      body:JSON.stringify(payload||{}),
+      signal:controller.signal
+    });
+    if(!response.ok)console.error('Painel administrativo retornou HTTP',response.status,endpoint);
+  }catch(e){console.error('Integração com painel administrativo:',e.message);}
+  finally{clearTimeout(timeout);}
+}
+
 function getProductImageSource(id){
   if(PRODUCT_IMAGES[id]) return PRODUCT_IMAGES[id];
   try{
@@ -81,7 +99,7 @@ function eliteWebhookHandler(req,res){
     const paidEvents=['DEPOSITO_COMPLETO','DEPOSIT_COMPLETED','PAYMENT_SUCCESS','PAYMENT_CONFIRMED','PAYMENT_PAID'];
     const paidStates=['COMPLETO','CONCLUIDO','CONCLUIDO COM SUCESSO','PAGO','PAID','COMPLETED','SUCCESS'];
     const paid=paidEvents.includes(eventName)||paidStates.includes(state);
-    if(id){const previous=transactions.get(id)||{};transactions.set(id,{...previous,...event,status:paid?'PAID':state||eventName||'PENDING'});console.log('Elite PAY webhook recebido:',JSON.stringify({id,event:eventName,state,status:paid?'PAID':'PENDING'}));}
+    if(id){const previous=transactions.get(id)||{};transactions.set(id,{...previous,...event,status:paid?'PAID':state||eventName||'PENDING'});if(paid)void notifyAdminPanel('/api/ingest/payment',{transactionId:id,status:'PAID'});console.log('Elite PAY webhook recebido:',JSON.stringify({id,event:eventName,state,status:paid?'PAID':'PENDING'}));}
     else console.warn('Elite PAY webhook sem transactionId:',JSON.stringify(event));
     return res.json({ok:true,paid,id});
   }catch(e){console.error('Elite webhook:',e);return res.status(400).json({error:'Webhook inválido'});}
@@ -140,7 +158,22 @@ app.post('/api/create-pix',async(req,res)=>{
     let qr=data.qrcodeUrl||null;
     if(typeof qr==='string'&&qr.startsWith('base64:'))qr='data:image/png;base64,'+qr.slice(7);
     if(!qr){try{qr=await QRCode.toDataURL(pix,{margin:1,width:280});}catch(e){console.error('QR local:',e);}}
-    transactions.set(id,{...data,transactionId:id,amountCents,metadata:metadata||{},status:String(data.status||'PENDENTE').toUpperCase()==='COMPLETO'?'PAID':'PENDING'});
+    const paymentStatus=String(data.status||'PENDENTE').toUpperCase()==='COMPLETO'?'PAID':'PENDING';
+    transactions.set(id,{...data,transactionId:id,amountCents,metadata:metadata||{},status:paymentStatus});
+    void notifyAdminPanel('/api/ingest/order',{
+      transactionId:id,
+      customerName:metadata?.customerName||payerName,
+      customerEmail:metadata?.customerEmail||'',
+      customerPhone:metadata?.customerPhone||'',
+      customerDocument:doc,
+      address:metadata?.address||{},
+      items:Array.isArray(metadata?.items)?metadata.items:[],
+      amountCents,
+      paymentStatus,
+      source:metadata?.source||'site-linha-pesada',
+      campaign:metadata?.campaign||{}
+    });
+    if(paymentStatus==='PAID')void notifyAdminPanel('/api/ingest/payment',{transactionId:id,status:'PAID'});
     return res.json({id,status:data.status||'PENDENTE',pixCopyPaste:pix,pixCode:pix,qrCode:qr,expiresAt:null,externalId:id,payerName,payerDocument:doc});
   }catch(e){console.error('create-pix:',e);return res.status(502).json({error:'Não foi possível conectar à Elite PAY para criar o PIX.'});}
 });
