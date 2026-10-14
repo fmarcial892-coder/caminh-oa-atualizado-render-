@@ -1,5 +1,5 @@
 (function(){
-  const whatsapp='5518920077617';
+  const whatsapp='5512981160171';
   const brl=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
   function buildMessage(){
     const name=(localStorage.getItem('lp_last_order_name')||'').trim();
