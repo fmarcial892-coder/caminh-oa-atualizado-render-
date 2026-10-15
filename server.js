@@ -119,14 +119,12 @@ app.post('/api/create-pix',async(req,res)=>{
     let amountCents;
     try{amountCents=moneyToCents(amount);}catch(e){return res.status(400).json({error:e.message});}
     if(amountCents>1500000)return res.status(400).json({error:'Valor acima do limite de R$ 15.000,00.'});
-    const amountForElite=Number((amountCents/100).toFixed(2));
     console.log(`Elite PAY /deposit → amount enviado: ${amountCents}`);
-    console.log(`Elite PAY /deposit → amount enviado ao gateway: ${amountForElite.toFixed(2)}`);
     if(!payerName||!/^\d{11}$|^\d{14}$/.test(doc))return res.status(400).json({error:'Nome e CPF/CNPJ válido são obrigatórios'});
     const response=await fetch(`${ELITE_API}/deposit`,{
       method:'POST',
       headers:{'x-client-id':clientId,'x-client-secret':clientSecret,'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({amount:amountForElite,description:'Pedido Linha Pesada',payerName,payerDocument:doc})
+      body:JSON.stringify({amount:amountCents,description:'Pedido Linha Pesada',payerName,payerDocument:doc})
     });
     const raw=await response.text();
     let data={};
